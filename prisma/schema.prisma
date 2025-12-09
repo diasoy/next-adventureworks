@@ -1,0 +1,188 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================
+//  DIMENSION TABLES
+// ==========================
+
+// Tabel 1: dim_dates
+model DimDate {
+  dateKey    Int      @id @map("date_key")
+  fullDate   DateTime @unique @map("full_date") @db.Date
+  day        Int      @db.TinyInt
+  month      Int      @db.TinyInt
+  monthName  String   @map("month_name") @db.VarChar(20)
+  quarter    Int      @db.TinyInt
+  year       Int      @db.SmallInt
+  isWeekend  Boolean  @map("is_weekend") @db.TinyInt
+
+  sales       FactSales[]
+  inventories FactInventoryMonthly[]
+
+  @@map("dim_dates")
+  @@index([year, month])
+}
+
+// Tabel 2: dim_customers
+model DimCustomer {
+  id              BigInt    @id @default(autoincrement())
+  accountNumber   String    @map("account_number") @db.VarChar(255)
+  fullName        String    @map("full_name") @db.VarChar(255)
+  email           String?   @db.VarChar(255)
+  phone           String?   @db.VarChar(50)
+  gender          String?   @db.VarChar(1)
+  city            String?   @db.VarChar(255)
+  state           String?   @db.VarChar(255)
+  country         String?   @db.VarChar(255)
+  postalCode      String?   @map("postal_code") @db.VarChar(20)
+  customerSegment String?   @map("customer_segment") @db.VarChar(255)
+  createdAt       DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime? @map("updated_at") @db.Timestamp(0)
+
+  sales FactSales[]
+
+  @@map("dim_customers")
+}
+
+// Tabel 3: dim_products
+model DimProduct {
+  id                    BigInt    @id @default(autoincrement())
+  productName           String    @map("product_name") @db.VarChar(255)
+  productNumber         String?   @map("product_number") @db.VarChar(255)
+  color                 String?   @db.VarChar(255)
+  size                  String?   @db.VarChar(20)
+  standardCost          Decimal?  @map("standard_cost") @db.Decimal(18, 2)
+  listPrice             Decimal?  @map("list_price") @db.Decimal(18, 2)
+  productSubcategoryId  Int?      @map("product_subcategory_id")
+  productSubcategoryName String?  @map("product_subcategory_name") @db.VarChar(255)
+  productCategoryId     Int?      @map("product_category_id")
+  productCategoryName   String?   @map("product_category_name") @db.VarChar(255)
+  createdAt             DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt             DateTime? @map("updated_at") @db.Timestamp(0)
+
+  sales       FactSales[]
+  inventories FactInventoryMonthly[]
+
+  @@map("dim_products")
+  @@index([productCategoryName, productSubcategoryName])
+}
+
+// Tabel 4: dim_salespersons
+model DimSalesperson {
+  id              BigInt    @id @default(autoincrement())
+  businessEntityId Int      @map("business_entity_id")
+  fullName        String    @map("full_name") @db.VarChar(255)
+  jobTitle        String?   @map("job_title") @db.VarChar(255)
+  email           String?   @db.VarChar(255)
+  phone           String?   @db.VarChar(50)
+  territoryId     BigInt?   @map("territory_id")
+  createdAt       DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime? @map("updated_at") @db.Timestamp(0)
+
+  territory DimTerritory? @relation(fields: [territoryId], references: [id])
+  sales     FactSales[]
+
+  @@map("dim_salespersons")
+  @@index([territoryId])
+}
+
+// Tabel 5: dim_sales_territories
+model DimTerritory {
+  id           BigInt    @id @default(autoincrement())
+  territoryName String   @map("territory_name") @db.VarChar(255)
+  country      String?   @db.VarChar(255)
+  region       String?   @db.VarChar(255)
+  groupName    String?   @map("group_name") @db.VarChar(255)
+  createdAt    DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime? @map("updated_at") @db.Timestamp(0)
+
+  salespersons DimSalesperson[]
+  sales        FactSales[]
+
+  @@map("dim_sales_territories")
+}
+
+// Tabel 6: dim_warehouses
+model DimWarehouse {
+  id            BigInt    @id @default(autoincrement())
+  warehouseName String    @map("warehouse_name") @db.VarChar(255)
+  city          String?   @db.VarChar(255)
+  state         String?   @db.VarChar(255)
+  country       String?   @db.VarChar(255)
+  createdAt     DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime? @map("updated_at") @db.Timestamp(0)
+
+  inventories FactInventoryMonthly[]
+
+  @@map("dim_warehouses")
+}
+
+// ==========================
+//  FACT TABLES
+// ==========================
+
+// Tabel 7: fact_inventory_monthly
+model FactInventoryMonthly {
+  id             BigInt    @id @default(autoincrement())
+  dateKey        Int       @map("date_key")
+  productId      BigInt    @map("product_id")
+  warehouseId    BigInt?   @map("warehouse_id")
+  beginQty       Int?      @map("begin_qty")
+  endQty         Int?      @map("end_qty")
+  avgQty         Decimal?  @map("avg_qty") @db.Decimal(18, 2)
+  inventoryValue Decimal?  @map("inventory_value") @db.Decimal(18, 2)
+  createdAt      DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamp(0)
+
+  date      DimDate       @relation(fields: [dateKey], references: [dateKey], onDelete: Cascade)
+  product   DimProduct    @relation(fields: [productId], references: [id])
+  warehouse DimWarehouse? @relation(fields: [warehouseId], references: [id])
+
+  @@map("fact_inventory_monthly")
+  @@index([dateKey])
+  @@index([productId])
+  @@index([warehouseId])
+}
+
+// Tabel 8: fact_sales
+model FactSales {
+  id              BigInt    @id @default(autoincrement())
+  dateKey         Int       @map("date_key")
+  productId       BigInt    @map("product_id")
+  customerId      BigInt    @map("customer_id")
+  salespersonId   BigInt?   @map("salesperson_id")
+  territoryId     BigInt?   @map("territory_id")
+  orderNumber     String    @map("order_number") @db.VarChar(50)
+  orderLineNumber Int       @default(1) @map("order_line_number")
+  orderQuantity   Int       @map("order_quantity")
+  unitPrice       Decimal   @map("unit_price") @db.Decimal(18, 2)
+  extendedAmount  Decimal   @map("extended_amount") @db.Decimal(18, 2)
+  discountAmount  Decimal   @default(0.00) @map("discount_amount") @db.Decimal(18, 2)
+  discountRate    Decimal   @default(0.0000) @map("discount_rate") @db.Decimal(5, 4)
+  salesAmount     Decimal   @map("sales_amount") @db.Decimal(18, 2)
+  costAmount      Decimal?  @map("cost_amount") @db.Decimal(18, 2)
+  profitAmount    Decimal?  @map("profit_amount") @db.Decimal(18, 2)
+  profitMargin    Decimal?  @map("profit_margin") @db.Decimal(5, 4)
+  createdAt       DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime? @map("updated_at") @db.Timestamp(0)
+
+  date        DimDate         @relation(fields: [dateKey], references: [dateKey], onDelete: Cascade)
+  product     DimProduct      @relation(fields: [productId], references: [id])
+  customer    DimCustomer     @relation(fields: [customerId], references: [id])
+  salesperson DimSalesperson? @relation(fields: [salespersonId], references: [id])
+  territory   DimTerritory?   @relation(fields: [territoryId], references: [id])
+
+  @@map("fact_sales")
+  @@index([dateKey])
+  @@index([productId])
+  @@index([customerId])
+  @@index([salespersonId])
+  @@index([territoryId])
+  @@index([orderNumber])
+}
