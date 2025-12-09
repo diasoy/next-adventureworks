@@ -62,8 +62,10 @@ export async function GET(request: Request) {
       .map((s) => {
         const totalCustomers = Object.keys(s.customers).length;
         let repeatCustomers = 0;
+        let totalOrders = 0;
 
         for (const cust of Object.values(s.customers)) {
+          totalOrders += cust.orderNumbers.size;
           if (cust.orderNumbers.size >= 2) {
             repeatCustomers += 1;
           }
@@ -71,30 +73,49 @@ export async function GET(request: Request) {
 
         const retentionRate =
           totalCustomers > 0 ? repeatCustomers / totalCustomers : 0;
+        const avgOrdersPerCustomer =
+          totalCustomers > 0 ? totalOrders / totalCustomers : 0;
+        const avgSalesPerCustomer =
+          totalCustomers > 0 ? s.totalSales / totalCustomers : 0;
 
         return {
           salesperson_id: s.salespersonId,
           salesperson_name: s.salespersonName,
+          territory_name: null,
           total_customers: totalCustomers,
           repeat_customers: repeatCustomers,
           retention_rate: Number(retentionRate.toFixed(4)),
+          total_orders: totalOrders,
           total_sales: Number(s.totalSales.toFixed(2)),
+          avg_orders_per_customer: Number(avgOrdersPerCustomer.toFixed(2)),
+          avg_sales_per_customer: Number(avgSalesPerCustomer.toFixed(2)),
         };
       })
       .sort((a, b) => b.retention_rate - a.retention_rate);
 
-    const bestRetention = salespersons[0] ?? null;
+    // Calculate summary
+    const totalSalespersons = salespersons.length;
+    const avgRetentionRate = totalSalespersons > 0
+      ? salespersons.reduce((sum, sp) => sum + sp.retention_rate, 0) / totalSalespersons
+      : 0;
+    const avgOrdersPerCustomer = totalSalespersons > 0
+      ? salespersons.reduce((sum, sp) => sum + sp.avg_orders_per_customer, 0) / totalSalespersons
+      : 0;
 
     return NextResponse.json({
+      summary: {
+        total_salespersons: totalSalespersons,
+        avg_retention_rate: Number(avgRetentionRate.toFixed(4)),
+        avg_orders_per_customer: Number(avgOrdersPerCustomer.toFixed(2)),
+      },
       salespersons,
-      bestRetention,
     });
   } catch (error) {
     console.error('Error in salesperson-retention API:', error);
     return NextResponse.json(
       {
+        summary: null,
         salespersons: [],
-        bestRetention: null,
         error: 'Failed to calculate salesperson retention',
       },
       { status: 500 },

@@ -58,8 +58,8 @@ const RegionPage = () => {
     setLoading(true);
     try {
       const url = selectedYear 
-        ? `/api/region?year=${selectedYear}`
-        : '/api/region';
+        ? `/api/discount-territory?year=${selectedYear}`
+        : '/api/discount-territory';
       const response = await fetch(url);
       const result = await response.json();
       setData(result);

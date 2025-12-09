@@ -43,18 +43,18 @@ const navItems = [
     icon: Users,
   },
   {
-    title: "Region",
-    url: "/region",
+    title: "Discount",
+    url: "/discount-territory",
     icon: ShoppingCart,
   },
   {
     title: "Salespersons",
-    url: "/salespersons",
+    url: "/salesperson-retention",
     icon: Package,
   },
   {
     title: "Turnover",
-    url: "/turnover",
+    url: "/inventory-turnover",
     icon: TrendingUp,
   },
 ]
