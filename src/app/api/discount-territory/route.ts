@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cachedResponse } from '@/lib/cache';
 
 export async function GET(request: Request) {
   try {
@@ -7,10 +8,32 @@ export async function GET(request: Request) {
     const yearParam = searchParams.get('year');
 
     const sales = await prisma.factSales.findMany({
-      include: {
-        territory: true,
-        date: true,
+      select: {
+        territoryId: true,
+        salesAmount: true,
+        profitAmount: true,
+        discountRate: true,
+        territory: {
+          select: {
+            territoryName: true,
+            groupName: true,
+            country: true,
+            region: true,
+          },
+        },
+        date: {
+          select: {
+            year: true,
+            month: true,
+          },
+        },
       },
+      where: yearParam ? {
+        date: {
+          year: Number(yearParam),
+        },
+      } : undefined,
+      take: 10000,
     });
 
     if (!sales.length) {
@@ -219,12 +242,12 @@ export async function GET(request: Request) {
           : 0,
       }));
 
-    return NextResponse.json({
+    return cachedResponse({
       territoryAnalysis,
       monthlyTrend,
       discountDistribution,
-      years,
-    });
+      years
+    }, 300); // Cache for 5 minutes
   } catch (error) {
     console.error('Error in discount-territory API:', error);
     return NextResponse.json(

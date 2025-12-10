@@ -1,15 +1,24 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cachedResponse } from '@/lib/cache';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const categoryFilter = searchParams.get('category') ?? undefined;
 
-    // Ambil data sales + product
+    // Ambil data sales + product dengan field minimal
     const sales = await prisma.factSales.findMany({
-      include: {
-        product: true, // relasi dari model FactSales
+      select: {
+        orderNumber: true,
+        productId: true,
+        product: {
+          select: {
+            id: true,
+            productName: true,
+            productCategoryName: true,
+          },
+        },
       },
       where: categoryFilter
         ? {
@@ -18,6 +27,7 @@ export async function GET(request: Request) {
             },
           }
         : undefined,
+      take: 5000, // Limit data
     });
 
     // Kalau tidak ada data, tetap balikin struktur yang konsisten
@@ -176,11 +186,11 @@ export async function GET(request: Request) {
     // ======================================
     // 5. Response
     // ======================================
-    return NextResponse.json({
+    return cachedResponse({
       productPairs,
       categoryPairs,
       topCategories,
-    });
+    }, 300); // Cache for 5 minutes
   } catch (error) {
     console.error('Error fetching bundling data:', error);
 

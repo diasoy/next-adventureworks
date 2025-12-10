@@ -71,16 +71,29 @@ interface DashboardData {
 export default function Home() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const response = await fetch('/api/dashboard');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const result = await response.json();
+        
+        // Check if there's an error in the response
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        
         setData(result);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch dashboard data');
       } finally {
         setLoading(false);
       }
@@ -101,6 +114,27 @@ export default function Home() {
           </div>
           <div className="h-64 bg-gray-200 rounded"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col gap-4 p-8">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-800">Error Loading Dashboard</CardTitle>
+            <CardDescription className="text-red-600">{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Retry
+            </button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

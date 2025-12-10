@@ -248,103 +248,15 @@ const SalespersonRetentionPage = () => {
         <CardHeader>
           <CardTitle>Detail Retention per Salesperson</CardTitle>
           <CardDescription>
-            Urut berdasarkan retention rate (tertinggi ke terendah).
+            Data dari Mondrian OLAP Server
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold">
-                    Salesperson
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold">
-                    Territory
-                  </th>
-                  <th className="px-4 py-3 text-right font-semibold">
-                    Total Customers
-                  </th>
-                  <th className="px-4 py-3 text-right font-semibold">
-                    Repeat Customers
-                  </th>
-                  <th className="px-4 py-3 text-right font-semibold">
-                    Retention Rate
-                  </th>
-                  <th className="px-4 py-3 text-right font-semibold">
-                    Total Orders
-                  </th>
-                  <th className="px-4 py-3 text-right font-semibold">
-                    Total Sales
-                  </th>
-                  <th className="px-4 py-3 text-right font-semibold">
-                    Avg Orders/Customer
-                  </th>
-                  <th className="px-4 py-3 text-right font-semibold">
-                    Avg Sales/Customer
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {sortedByRetention.map((s, index) => (
-                  <tr
-                    key={`sp-row-${s.salesperson_id}-${index}`}
-                    className={`hover:bg-gray-50 cursor-pointer ${
-                      selectedSalespersonId === s.salesperson_id
-                        ? 'bg-blue-50'
-                        : ''
-                    }`}
-                    onClick={() =>
-                      setSelectedSalespersonId(
-                        selectedSalespersonId === s.salesperson_id
-                          ? null
-                          : s.salesperson_id
-                      )
-                    }
-                  >
-                    <td className="px-4 py-3 font-semibold">
-                      {s.salesperson_name}
-                    </td>
-                    <td className="px-4 py-3">
-                      {s.territory_name || 'Unknown'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {s.total_customers.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {s.repeat_customers.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {(s.retention_rate * 100).toFixed(1)}%
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {s.total_orders.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      ${s.total_sales.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {s.avg_orders_per_customer.toFixed(2)}x
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      ${s.avg_sales_per_customer.toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-
-                {sortedByRetention.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="px-4 py-6 text-center text-gray-500"
-                    >
-                      Tidak ada data salesperson.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <iframe 
+            src="http://localhost:8080/mondrian/"
+            className="w-full h-[600px] border-0"
+            title="Retention Salesperson Data"
+          />
         </CardContent>
       </Card>
     </div>

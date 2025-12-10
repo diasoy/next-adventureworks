@@ -1,13 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cachedResponse } from '@/lib/cache';
 
 export async function GET(request: Request) {
   try {
     const sales = await prisma.factSales.findMany({
-      include: {
-        salesperson: true,
-        customer: true,
+      select: {
+        salespersonId: true,
+        customerId: true,
+        orderNumber: true,
+        salesAmount: true,
+        salesperson: {
+          select: {
+            fullName: true,
+          },
+        },
       },
+      take: 10000,
     });
 
     if (!sales.length) {
@@ -102,14 +111,14 @@ export async function GET(request: Request) {
       ? salespersons.reduce((sum, sp) => sum + sp.avg_orders_per_customer, 0) / totalSalespersons
       : 0;
 
-    return NextResponse.json({
+    return cachedResponse({
       summary: {
         total_salespersons: totalSalespersons,
         avg_retention_rate: Number(avgRetentionRate.toFixed(4)),
         avg_orders_per_customer: Number(avgOrdersPerCustomer.toFixed(2)),
       },
       salespersons,
-    });
+    }, 300); // Cache for 5 minutes
   } catch (error) {
     console.error('Error in salesperson-retention API:', error);
     return NextResponse.json(

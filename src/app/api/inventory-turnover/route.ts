@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cachedResponse } from '@/lib/cache';
 
 export async function GET(request: Request) {
   try {
@@ -144,14 +145,14 @@ export async function GET(request: Request) {
       ? categories.reduce((sum, c) => sum + c.turnover_ratio, 0) / categories.length
       : 0;
 
-    return NextResponse.json({
+    return cachedResponse({
       summary: {
         total_categories: totalCategories,
         overall_turnover: Number(overallTurnover.toFixed(4)),
       },
       categories,
       products,
-    });
+    }, 300); // Cache for 5 minutes
   } catch (error) {
     console.error('Error in inventory-turnover API:', error);
     return NextResponse.json(

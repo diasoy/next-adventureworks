@@ -1,13 +1,27 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cachedResponse } from '@/lib/cache';
 
 export async function GET(request: Request) {
   try {
     const sales = await prisma.factSales.findMany({
-      include: {
-        customer: true,
-        date: true, // DimDate (punya field year)
+      select: {
+        customerId: true,
+        orderNumber: true,
+        salesAmount: true,
+        customer: {
+          select: {
+            fullName: true,
+            customerSegment: true,
+          },
+        },
+        date: {
+          select: {
+            year: true,
+          },
+        },
       },
+      take: 10000,
     });
 
     if (!sales.length) {
@@ -135,7 +149,7 @@ export async function GET(request: Request) {
           a.avg_frequency_per_customer_per_year,
       );
 
-    return NextResponse.json({
+    return cachedResponse({
       overall: {
         overall_avg_frequency_per_customer_per_year: Number(
           overallAvgFreq.toFixed(2),
@@ -143,7 +157,7 @@ export async function GET(request: Request) {
         overall_avg_ticket_size: Number(overallAvgTicket.toFixed(2)),
       },
       segments: segmentsWithFlag,
-    });
+    }, 300); // Cache for 5 minutes
   } catch (error) {
     console.error('Error in purchase-frequency API:', error);
     return NextResponse.json(

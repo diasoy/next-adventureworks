@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Settings,
   Home,
+  Database,
 } from "lucide-react"
 
 import {
@@ -25,6 +26,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 const navItems = [
   {
@@ -60,52 +62,67 @@ const navItems = [
 ]
 
 export function AppSidebar() {
+  const pathname = usePathname()
+  
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" className="border-r">
+      <SidebarHeader className="p-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            <SidebarMenuButton size="lg" asChild tooltip="AdventureWorks" className="data-[state=collapsed]:p-2">
               <Link href="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <BarChart3 className="size-4" />
+                <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <BarChart3 className="size-6" />
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">AdventureWorks</span>
-                  <span className="truncate text-xs">CRM Dashboard</span>
+                <div className="flex flex-col gap-0.5 leading-none">
+                  <span className="font-semibold">AdventureWorks</span>
+                  <span className="text-xs text-muted-foreground">CRM Dashboard</span>
                 </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-2">
         <SidebarGroup>
-          <SidebarGroupLabel>Main Menu</SidebarGroupLabel>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {navItems.map((item) => {
+                const isActive = pathname === item.url
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive}
+                      tooltip={item.title}
+                      className="h-10"
+                    >
+                      <Link href={item.url} className="flex items-center gap-3">
+                        <item.icon className="size-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <a href="/settings">
-                <Settings />
+            <SidebarMenuButton 
+              asChild 
+              isActive={pathname === "/settings"}
+              tooltip="Settings"
+              className="h-10"
+            >
+              <Link href="/settings" className="flex items-center gap-3">
+                <Settings className="size-5" />
                 <span>Settings</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

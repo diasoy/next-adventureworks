@@ -1,21 +1,59 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cachedResponse } from '@/lib/cache';
 
 export async function GET(request: Request) {
   try {
-    // Fetch all sales data with relations
+    console.log('Dashboard API: Starting data fetch...');
+    
+    // Test database connection
+    await prisma.$connect();
+    console.log('Dashboard API: Database connected');
+    
+    // Fetch sales data with only necessary fields
     const sales = await prisma.factSales.findMany({
-      include: {
-        customer: true,
-        product: true,
-        territory: true,
-        salesperson: true,
-        date: true,
+      select: {
+        salesAmount: true,
+        profitAmount: true,
+        discountAmount: true,
+        orderNumber: true,
+        orderQuantity: true,
+        customerId: true,
+        productId: true,
+        territoryId: true,
+        customer: {
+          select: {
+            fullName: true,
+          },
+        },
+        product: {
+          select: {
+            productName: true,
+            productCategoryName: true,
+          },
+        },
+        territory: {
+          select: {
+            territoryName: true,
+          },
+        },
+        date: {
+          select: {
+            year: true,
+            month: true,
+            monthName: true,
+            fullDate: true,
+          },
+        },
       },
+      take: 10000, // Limit to prevent memory issues
     });
 
+    console.log(`Dashboard API: Fetched ${sales.length} sales records`);
+
     if (!sales.length) {
-      return NextResponse.json({
+      console.log('Dashboard API: No sales data found');
+      return cachedResponse({
         summary: {
           total_revenue: 0,
           total_orders: 0,
@@ -26,14 +64,13 @@ export async function GET(request: Request) {
           avg_profit_margin: 0,
           total_discount: 0,
         },
-        recentSales: [],
         topCustomers: [],
         topProducts: [],
         salesByCategory: [],
         salesByTerritory: [],
         monthlyTrend: [],
         recentOrders: [],
-      });
+      }, 300);
     }
 
     // Calculate summary metrics
@@ -201,8 +238,9 @@ export async function GET(request: Request) {
     sales.forEach(s => {
       const orderNum = s.orderNumber;
       if (!orderMap[orderNum]) {
+        const dateValue = s.date?.fullDate;
         orderMap[orderNum] = {
-          date: s.date?.fullDate.toISOString() ?? '',
+          date: dateValue ? new Date(dateValue).toISOString() : new Date().toISOString(),
           customer: s.customer?.fullName ?? 'Unknown',
           territory: s.territory?.territoryName ?? 'Unknown',
           revenue: 0,
@@ -229,7 +267,7 @@ export async function GET(request: Request) {
       .sort((a, b) => new Date(b.order_date).getTime() - new Date(a.order_date).getTime())
       .slice(0, 10);
 
-    return NextResponse.json({
+    return cachedResponse({
       summary: {
         total_revenue: Number(totalRevenue.toFixed(2)),
         total_orders: uniqueOrders,
@@ -246,19 +284,30 @@ export async function GET(request: Request) {
       salesByTerritory,
       monthlyTrend,
       recentOrders,
-    });
+    }, 300); // Cache for 5 minutes
   } catch (error) {
     console.error('Error in dashboard API:', error);
+    console.error('Error details:', error instanceof Error ? error.message : String(error));
+    
     return NextResponse.json(
       {
-        summary: null,
+        summary: {
+          total_revenue: 0,
+          total_orders: 0,
+          total_customers: 0,
+          total_products: 0,
+          avg_order_value: 0,
+          total_profit: 0,
+          avg_profit_margin: 0,
+          total_discount: 0,
+        },
         topCustomers: [],
         topProducts: [],
         salesByCategory: [],
         salesByTerritory: [],
         monthlyTrend: [],
         recentOrders: [],
-        error: 'Failed to fetch dashboard data',
+        error: error instanceof Error ? error.message : 'Failed to fetch dashboard data',
       },
       { status: 500 },
     );
