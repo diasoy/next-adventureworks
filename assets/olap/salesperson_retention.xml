@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<Schema name="SalespersonRetention">
+<!--
+  == Mondrian Schema for Salesperson Retention Analysis
+  == Using actual Prisma database structure: fact_sales, dim_salespersons, dim_customers, etc.
+  -->
+
+<!-- Main Cube for Salesperson Retention -->
+<Cube name="Retention" defaultMeasure="Total Sales">
+  
+  <Table name="fact_sales"/>
+
+  <!-- Salesperson Dimension with Territory -->
+  <Dimension name="Salesperson" foreignKey="salesperson_id">
+    <Hierarchy hasAll="true" allMemberName="All Salespersons" primaryKey="id" primaryKeyTable="dim_salespersons">
+      <Join leftKey="territory_id" rightKey="id">
+        <Table name="dim_salespersons"/>
+        <Table name="dim_sales_territories"/>
+      </Join>
+      <Level name="Territory" table="dim_sales_territories" column="territory_name" uniqueMembers="false"/>
+      <Level name="Salesperson Name" table="dim_salespersons" column="full_name" uniqueMembers="true">
+        <Property name="Job Title" table="dim_salespersons" column="job_title"/>
+        <Property name="Email" table="dim_salespersons" column="email"/>
+      </Level>
+    </Hierarchy>
+  </Dimension>
+
+  <!-- Customer Dimension -->
+  <Dimension name="Customer" foreignKey="customer_id">
+    <Hierarchy hasAll="true" allMemberName="All Customers" primaryKey="id">
+      <Table name="dim_customers"/>
+      <Level name="Customer Segment" column="customer_segment" uniqueMembers="false"/>
+      <Level name="Customer Name" column="full_name" uniqueMembers="true">
+        <Property name="City" column="city"/>
+        <Property name="State" column="state"/>
+        <Property name="Country" column="country"/>
+      </Level>
+    </Hierarchy>
+  </Dimension>
+
+  <!-- Time Dimension -->
+  <Dimension name="Time" type="TimeDimension" foreignKey="date_key">
+    <Hierarchy hasAll="true" allMemberName="All Periods" primaryKey="date_key">
+      <Table name="dim_dates"/>
+      <Level name="Year" column="year" type="Numeric" uniqueMembers="true" levelType="TimeYears"/>
+      <Level name="Quarter" column="quarter" uniqueMembers="false" levelType="TimeQuarters"/>
+      <Level name="Month" column="month" type="Numeric" uniqueMembers="false" levelType="TimeMonths">
+        <Property name="Month Name" column="month_name"/>
+      </Level>
+    </Hierarchy>
+  </Dimension>
+
+  <!-- Product Dimension -->
+  <Dimension name="Product" foreignKey="product_id">
+    <Hierarchy hasAll="true" allMemberName="All Products" primaryKey="id">
+      <Table name="dim_products"/>
+      <Level name="Product Category" column="product_category_name" uniqueMembers="false"/>
+      <Level name="Product Subcategory" column="product_subcategory_name" uniqueMembers="false"/>
+      <Level name="Product Name" column="product_name" uniqueMembers="true">
+        <Property name="Product Number" column="product_number"/>
+        <Property name="Color" column="color"/>
+        <Property name="Size" column="size"/>
+        <Property name="List Price" column="list_price" type="Numeric"/>
+      </Level>
+    </Hierarchy>
+  </Dimension>
+
+  <!-- Territory Dimension (for direct territory analysis) -->
+  <Dimension name="Territory" foreignKey="territory_id">
+    <Hierarchy hasAll="true" allMemberName="All Territories" primaryKey="id">
+      <Table name="dim_sales_territories"/>
+      <Level name="Territory Name" column="territory_name" uniqueMembers="true">
+        <Property name="Country" column="country"/>
+        <Property name="Region" column="region"/>
+        <Property name="Group Name" column="group_name"/>
+      </Level>
+    </Hierarchy>
+  </Dimension>
+
+  <!-- Measures -->
+  <Measure name="Total Sales" column="sales_amount" aggregator="sum" formatString="#,##0.00"/>
+  
+  <Measure name="Total Orders" column="order_number" aggregator="distinct-count" formatString="#,###"/>
+  
+  <Measure name="Total Customers" column="customer_id" aggregator="distinct-count" formatString="#,###"/>
+  
+  <Measure name="Total Quantity" column="order_quantity" aggregator="sum" formatString="#,###"/>
+  
+  <Measure name="Total Cost" column="cost_amount" aggregator="sum" formatString="#,##0.00"/>
+  
+  <Measure name="Total Profit" column="profit_amount" aggregator="sum" formatString="#,##0.00"/>
+  
+  <Measure name="Average Sales" column="sales_amount" aggregator="avg" formatString="#,##0.00"/>
+  
+  <Measure name="Average Discount" column="discount_rate" aggregator="avg" formatString="#0.00%"/>
+  
+  <!-- Calculated Members for Advanced Metrics -->
+  <CalculatedMember name="Avg Sales Per Customer" dimension="Measures" formula="[Measures].[Total Sales] / [Measures].[Total Customers]" formatString="#,##0.00">
+    <CalculatedMemberProperty name="FORMAT_STRING" value="#,##0.00"/>
+  </CalculatedMember>
+  
+  <CalculatedMember name="Avg Orders Per Customer" dimension="Measures" formula="[Measures].[Total Orders] / [Measures].[Total Customers]" formatString="#,##0.00">
+    <CalculatedMemberProperty name="FORMAT_STRING" value="#,##0.00"/>
+  </CalculatedMember>
+
+  <CalculatedMember name="Profit Margin %" dimension="Measures" formula="([Measures].[Total Profit] / [Measures].[Total Sales]) * 100" formatString="#0.00%">
+    <CalculatedMemberProperty name="FORMAT_STRING" value="#0.00%"/>
+  </CalculatedMember>
+
+  <!-- Named Sets for Common Queries -->
+  <NamedSet name="Top 10 Salespersons">
+    <Formula>
+      TopCount([Salesperson].[Salesperson Name].Members, 10, [Measures].[Total Sales])
+    </Formula>
+  </NamedSet>
+
+</Cube>
+
+</Schema>
