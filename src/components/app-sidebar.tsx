@@ -10,6 +10,7 @@ import {
   Settings,
   Home,
   Database,
+  DollarSign,
 } from "lucide-react"
 
 import {
@@ -33,6 +34,11 @@ const navItems = [
     title: "Dashboard",
     url: "/",
     icon: Home,
+  },
+  {
+    title: "Customer Value",
+    url: "/customer-value",
+    icon: DollarSign,
   },
   {
     title: "Bundling",
