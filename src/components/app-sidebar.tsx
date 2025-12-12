@@ -11,7 +11,10 @@ import {
   Home,
   Database,
   DollarSign,
+  LogOut,
+  User,
 } from "lucide-react"
+import { signOut, useSession } from "next-auth/react"
 
 import {
   Sidebar,
@@ -32,43 +35,48 @@ import { usePathname } from "next/navigation"
 const navItems = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/dashboard",
     icon: Home,
   },
   {
     title: "Customer Value",
-    url: "/customer-value",
+    url: "/dashboard/customer-value",
     icon: DollarSign,
   },
   {
     title: "Bundling",
-    url: "/bundling",
+    url: "/dashboard/bundling",
     icon: BarChart3,
   },
   {
     title: "Frequency",
-    url: "/purchase-frequency",
+    url: "/dashboard/purchase-frequency",
     icon: Users,
   },
   {
     title: "Discount",
-    url: "/discount-territory",
+    url: "/dashboard/discount-territory",
     icon: ShoppingCart,
   },
   {
     title: "Salespersons",
-    url: "/salesperson-retention",
+    url: "/dashboard/salesperson-retention",
     icon: Package,
   },
   {
     title: "Turnover",
-    url: "/inventory-turnover",
+    url: "/dashboard/inventory-turnover",
     icon: TrendingUp,
   },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/login" })
+  }
   
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -76,7 +84,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild tooltip="AdventureWorks" className="data-[state=collapsed]:p-2">
-              <Link href="/">
+              <Link href="/dashboard">
                 <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <BarChart3 className="size-6" />
                 </div>
@@ -116,19 +124,22 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-2">
+      <SidebarFooter className="p-2 space-y-2">
         <SidebarMenu>
           <SidebarMenuItem>
+            <div className="flex items-center gap-2 px-2 py-1.5 text-sm">
+              <User className="size-4" />
+              <span className="truncate">{session?.user?.email || "Guest"}</span>
+            </div>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <SidebarMenuButton 
-              asChild 
-              isActive={pathname === "/settings"}
-              tooltip="Settings"
-              className="h-10"
+              onClick={handleLogout}
+              tooltip="Logout"
+              className="h-10 text-red-600 hover:text-red-700 hover:bg-red-50"
             >
-              <Link href="/settings" className="flex items-center gap-3">
-                <Settings className="size-5" />
-                <span>Settings</span>
-              </Link>
+              <LogOut className="size-5" />
+              <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
