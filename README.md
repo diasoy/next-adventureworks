@@ -164,11 +164,113 @@ npm run lint         # Jalankan linter
 npm run prisma:seed  # Jalankan seed script
 ```
 
-## 🔌 Integrasi dengan Mondrian OLAP
+## 🔌 Integrasi dengan Mondrian OLAP Server
 
-Beberapa page menggunakan iframe untuk menampilkan data dari Mondrian OLAP Server di `http://localhost:8080/mondrian/`.
+Project ini menggunakan **Mondrian OLAP Server** untuk analisis multidimensional yang mendalam, terutama pada fitur **Salesperson Retention** dan **Inventory Turnover**. OLAP (Online Analytical Processing) memungkinkan drill-down dan cross-filtering interaktif pada data warehouse.
 
-Pastikan Mondrian OLAP Server sudah berjalan jika ingin menggunakan fitur ini.
+### Setup Mondrian OLAP Server
+
+#### 1. Download & Install Mondrian
+
+- Download **Apache Tomcat** (v9.x atau lebih baru) dari [https://tomcat.apache.org](https://tomcat.apache.org)
+- Download **Mondrian WAR** file atau gunakan distribution Pentaho BI Server
+
+#### 2. Deploy Mondrian ke Tomcat
+
+1. Extract Apache Tomcat ke folder pilihan Anda (misal: `C:\tomcat`)
+2. Copy file WAR Mondrian ke folder `tomcat/webapps/`
+3. Copy file `salesperson_retention.xml` dari `assets/olap/` ke `tomcat/webapps/mondrian/WEB-INF/queries/`
+
+#### 3. Konfigurasi Database Connection
+
+Edit file schema XML (`salesperson_retention.xml`) dan sesuaikan JDBC connection string:
+
+```xml
+jdbcDriver="com.mysql.cj.jdbc.Driver" 
+jdbcUrl="jdbc:mysql://localhost:3306/next_adventureworks?user=root&password=YOUR_PASSWORD"
+```
+
+Ganti `YOUR_PASSWORD` dengan password MySQL Anda.
+
+#### 4. Deploy File OLAP ke Tomcat
+
+Copy seluruh file dari folder `assets/olap/` ke `tomcat/webapps/mondrian/`:
+
+```bash
+cp assets/olap/*.jsp tomcat/webapps/mondrian/
+cp assets/olap/*.html tomcat/webapps/mondrian/
+cp assets/olap/salesperson_retention.xml tomcat/webapps/mondrian/WEB-INF/queries/
+```
+
+#### 5. Jalankan Tomcat Server
+
+Windows:
+```bash
+cd C:\tomcat\bin
+startup.bat
+```
+
+Linux/Mac:
+```bash
+cd /path/to/tomcat/bin
+./startup.sh
+```
+
+Server akan berjalan di `http://localhost:8080`
+
+#### 6. Akses OLAP Dashboard
+
+Buka browser dan akses:
+- **Index OLAP**: `http://localhost:8080/mondrian/index.html`
+- **Salesperson Retention**: `http://localhost:8080/mondrian/testpage.jsp?query=retention_salesperson`
+- **Territory Analysis**: `http://localhost:8080/mondrian/testpage.jsp?query=retention_territory`
+- **Time Series**: `http://localhost:8080/mondrian/testpage.jsp?query=retention_timeseries`
+
+### Fitur OLAP yang Tersedia
+
+File OLAP di folder `assets/olap/` menyediakan 6 analisis interaktif:
+
+1. **retention_salesperson.jsp** - Detail Retention per Salesperson
+   - Drill-down: Territory → Salesperson
+   - Metrics: Total Sales, Orders, Customers, Profit, Avg per Customer
+
+2. **retention_territory.jsp** - Retention by Territory
+   - Drill-down: Group → Region → Territory
+   - Cross-filter berdasarkan hierarki geografis
+
+3. **retention_timeseries.jsp** - Retention Time Series
+   - Drill-down: Year → Quarter → Month
+   - Analisis trend temporal
+
+4. **retention_product.jsp** - Retention by Product
+   - Drill-down: Category → Subcategory → Product
+   - Analisis per produk level detail
+
+5. **retention_customer.jsp** - Customer Retention Analysis
+   - Drill-down: Segment → Customer
+   - Analisis retensi per customer segment
+
+6. **retention_multidim.jsp** - Multi-dimensional Analysis
+   - Cross-filter: Salesperson × Product × Time
+   - Analisis 3 dimensi sekaligus
+
+### Schema Mondrian XML
+
+File `salesperson_retention.xml` mendefinisikan:
+- **Cube**: "Retention" dengan fact table `fact_sales`
+- **Dimensions**: Salesperson, Customer, Product, Time, Territory
+- **Measures**: Total Sales, Orders, Customers, Profit, Margins
+- **Hierarchies**: Drill-down paths untuk setiap dimensi
+
+### Integrasi dengan Next.js Dashboard
+
+Halaman **Inventory Turnover** (`/dashboard/inventory-turnover`) menggunakan iframe untuk embed OLAP Mondrian:
+
+```html
+<iframe src="http://localhost:8080/mondrian/testpage.jsp?query=retention_salesperson" />
+```
+
+Pastikan Mondrian OLAP Server sudah berjalan di port 8080 agar fitur ini dapat berfungsi dengan baik.
 
 ## 📝 Technology Stack
 
@@ -196,6 +298,18 @@ Pastikan Mondrian OLAP Server sudah berjalan jika ingin menggunakan fitur ini.
 - Periksa koneksi database di Pentaho
 - Pastikan tabel dimensi sudah terisi data
 - Cek log error di Pentaho untuk detail masalah
+
+### OLAP Mondrian tidak bisa diakses
+- Pastikan Tomcat server sudah running di port 8080
+- Cek apakah file WAR Mondrian sudah ter-deploy di `webapps/mondrian`
+- Periksa JDBC connection string di file XML schema
+- Lihat log Tomcat di `tomcat/logs/catalina.out` untuk error detail
+- Pastikan MySQL JDBC Driver (mysql-connector-java.jar) ada di `tomcat/lib/`
+
+### Iframe OLAP di dashboard tidak muncul
+- Pastikan Mondrian server berjalan di `http://localhost:8080/mondrian/`
+- Periksa browser console untuk CORS atau mixed content errors
+- Coba akses URL OLAP langsung di browser untuk verifikasi
 
 ## 📄 License
 
